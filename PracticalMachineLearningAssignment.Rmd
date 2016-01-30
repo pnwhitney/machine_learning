@@ -1,0 +1,98 @@
+---
+title: "Practical Machine Learning Assignment"
+author: "Peter Whitney"
+date: "January 24, 2016"
+output: html_document
+---
+
+# Synopsis
+For this assignment we will perform an analysis with predictions on the 
+"Qualitative Activity Recognition of Weight Lifting Exercises"
+dataset referenced via the following URL: 
+"http://groupware.les.inf.puc-rio.br/har#dataset"
+
+# Data Preparation
+The referenced dataset includes many rows that both add new features and
+calculated variables. The added variables and features are not part of the
+initial data collection set and adding these variables and features makes 
+the dataset a non-tidy dataset. As a result, all of the features designated 
+by the new_window="yes" designation will be removed. Additionally all of the 
+dervied colums will also be purged. The resulting dataset is one that is tidy, 
+and fully populated without any need to extrapolate or fill in missing data points.
+
+All of the same operations are also performed on the test dataset.
+```{r}
+setwd("/Users/pwhitney/Documents/Coursera/PracticalMachineLearning")
+train_initial <- read.csv("pml-training.csv")
+train_purge_calculated <- train_initial[train_initial$new_window=="no",]
+train_cols <- c("user_name",
+		"accel_arm_x","accel_arm_y","accel_arm_z",
+		"gyros_arm_x","gyros_arm_y","gyros_arm_z",
+		"magnet_arm_x","magnet_arm_y","magnet_arm_z",
+		"pitch_arm","roll_arm","yaw_arm","total_accel_arm",
+		"accel_belt_x","accel_belt_y","accel_belt_z",
+		"gyros_belt_x","gyros_belt_y","gyros_belt_z",
+		"magnet_belt_x","magnet_belt_y","magnet_belt_z",
+		"pitch_belt","roll_belt","yaw_belt","total_accel_belt",
+		"accel_dumbbell_x","accel_dumbbell_y","accel_dumbbell_z",
+		"gyros_dumbbell_x","gyros_dumbbell_y","gyros_dumbbell_z",
+		"magnet_dumbbell_x","magnet_dumbbell_y","magnet_dumbbell_z",
+		"pitch_dumbbell","roll_dumbbell","yaw_dumbbell","total_accel_dumbbell",
+		"accel_forearm_x","accel_forearm_y","accel_forearm_z",
+		"gyros_forearm_x","gyros_forearm_y","gyros_forearm_z",
+		"magnet_forearm_x","magnet_forearm_y","magnet_forearm_z",
+		"pitch_forearm","roll_forearm","yaw_forearm","total_accel_forearm", "classe")
+train <- subset(train_purge_calculated, select=train_cols)
+
+test_initial <- read.csv("pml-testing.csv")
+test_purge_calculated <- test_initial[test_initial$new_window=="no",]
+test_cols <- train_cols[1:53]
+test <- subset(test_purge_calculated, select=test_cols)
+```
+
+# Model Generation
+I chose to use Random Forests with 10 Fold Cross Validation for this
+assignment. Random Forests was chosen for its known ability to produce
+good classification result across a wide variety of datasets and it is
+the same choice used by the study team that performed the initial study.
+
+I did not apply any ensembling methods as the results I achieved with just
+Random Forests came so close to the initial study results that pursuing
+further improvments in accuracy would have added more complexity and execution
+time and produced very little improvement if any at all. You can think of this
+as being similar to the NetFlix contest where award winning results were achieved
+but the model was never implemented due to execution time and complexity considerations.
+```{r}
+require(caret)
+require(randomForest)
+
+set.seed(12345)
+rf_model<-train(classe ~ .,data=train,method="rf",
+                trControl=trainControl(method="cv",number=10),
+                prox=TRUE,allowParallel=TRUE)
+```
+
+# Random Forests Results
+The results indicate that one model was able to accomplish accuracy performance
+of 99.5% Which is an exceptional accuracy result by many standards and comes very
+close to the results achived by the study group.
+```{r}
+print(rf_model)
+```
+
+# Random Forests Results and Estimated Error Rate
+The estimated error rate is 0.44%.
+```{r}
+print(rf_model$finalModel)
+```
+
+# Create Test Set Predictions Using the Random Forest Model
+Note that the predictions created below cannot be that bad as I was able to make
+ALL quiz predictions correctly (100%) using the process shown above.
+```{r}
+rf_predict <- predict(rf_model, test)
+for(i in 1:20){
+    line = paste0("prediction_",i," : ",rf_predict[i])
+    print(line)
+}
+```
